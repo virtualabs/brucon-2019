@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := brutris
+PROJECT_NAME := brusnake
 
 include $(IDF_PATH)/make/project.mk
