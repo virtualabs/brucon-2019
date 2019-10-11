@@ -139,9 +139,9 @@ void send_frame(uint16_t *framebuffer)
  * Loads a 132*132 bitmap into the framebuffer, and updates the screen.
  **/
 
-void load_bitmap(uint16_t *bitmap)
+void lcd_load_bitmap(uint16_t *bitmap)
 {
-  bitblt(0,0,132,132,bitmap);
+  lcd_bitblt(0,0,132,132,bitmap);
 }
 
 /**
@@ -151,13 +151,30 @@ void load_bitmap(uint16_t *bitmap)
  * This routine DOES NOT refresh screen !
  *
  **/
-void bitblt(int x, int y, int width, int height, uint16_t *region)
+void lcd_bitblt(int x, int y, int width, int height, uint16_t *region)
 {
   int w,z;
   for (w=0;w<height;w++)
     for (z=0;z<width;z++)
       frame[(y+w)*ROW_LENGTH + (132 - x+z)] = region[w*ROW_LENGTH + z];
 }
+
+/**
+ * region_fill()
+ *
+ * Fill a region with the given color.
+ *
+ **/
+void lcd_region_fill(int x, int y, int width, int height, uint16_t color)
+{
+  int w,z;
+  for (w=0;w<height;w++)
+    for (z=0;z<width;z++)
+      frame[(y+w)*ROW_LENGTH + (132 - x+z)] = color;
+}
+
+
+
 
 void lcd_cmd(uint8_t cmd)
 {
@@ -503,26 +520,14 @@ void lcd_setStr(char *pString, int x, int y, int fColor, int bColor, char uselas
 	}
 }
 
-void setPixel(int color, unsigned char x, unsigned char y)
+void lcd_pixel(int color, unsigned char x, unsigned char y)
 {
   y = (COL_HEIGHT - 1) - y;
   x = (ROW_LENGTH - 1) - x;
-
-  lcd_send(LCD_COMMAND,PASETP); // page start/end ram
-  lcd_send(LCD_DATA,x);
-  lcd_send(LCD_DATA,x);
-
-  lcd_send(LCD_COMMAND,CASETP); // column start/end ram
-  lcd_send(LCD_DATA,y);
-  lcd_send(LCD_DATA,y);
-
-  lcd_send(LCD_COMMAND,RAMWRP); // write
-
-  lcd_send(LCD_DATA,(unsigned char)((color>>4)&0x00FF));
-  lcd_send(LCD_DATA,(unsigned char)(((color&0x0F)<<4)|0x00));
+  frame[y*ROW_LENGTH + x] = color;
 }
 
-void lcd_setLine(int x0, int y0, int x1, int y1, int color)
+void lcd_line(int x0, int y0, int x1, int y1, int color)
 {
         int dy = y1 - y0; // Difference between y0 and y1
         int dx = x1 - x0; // Difference between x0 and x1
@@ -546,7 +551,7 @@ void lcd_setLine(int x0, int y0, int x1, int y1, int color)
 
         dy <<= 1; // dy is now 2*dy
         dx <<= 1; // dx is now 2*dx
-        setPixel(color, x0, y0);
+        lcd_pixel(color, x0, y0);
 
         if (dx > dy)
         {
@@ -560,7 +565,7 @@ void lcd_setLine(int x0, int y0, int x1, int y1, int color)
                         }
                         x0 += stepx;
                         fraction += dy;
-                        setPixel(color, x0, y0);
+                        lcd_pixel(color, x0, y0);
                 }
         }
         else
@@ -575,113 +580,7 @@ void lcd_setLine(int x0, int y0, int x1, int y1, int color)
                         }
                         y0 += stepy;
                         fraction += dx;
-                        setPixel(color, x0, y0);
+                        lcd_pixel(color, x0, y0);
                 }
         }
-}
-
-void lcd_setRect(int x0, int y0, int x1, int y1, unsigned char fill, int color)
-{
-    // check if the rectangle is to be filled
-    unsigned int xstart,xend,ystart,yend,width=0,height=0;
-    int j=0,i=0;
-    // int tx0,tx1,ty0,ty1;
-
-//    uint8_t cb0,cb1,cb2;
-
-    if (fill == 1)
-    {
-
-        y0 = (COL_HEIGHT - 1) - y0;
-        x0 = (ROW_LENGTH - 1) - x0;
-        y1 = (COL_HEIGHT - 1) - y1;
-        x1 = (ROW_LENGTH - 1) - x1;
-
-        if(x0>x1){
-            xstart=x1;
-            xend=x0;
-        } else {
-            xstart=x0;
-            xend=x1;
-        }
-        if(y0>y1){
-            ystart=y1;
-            yend=y0;
-        } else {
-            ystart=y0;
-            yend=y1;
-        }
-
-        width  = xend - xstart;
-        height = yend - ystart;
-
-
-        if (driver == EPSON) // if it's an epson
-        {
-            i=0;
-
-            lcd_send(LCD_COMMAND,PASET);  // page start/end ram
-            lcd_send(LCD_DATA,xstart);
-            lcd_send(LCD_DATA,xend);
-
-
-            lcd_send(LCD_COMMAND,CASET);  // column start/end ram
-            lcd_send(LCD_DATA,ystart);
-            lcd_send(LCD_DATA,yend);
-            j++;
-
-            lcd_send(LCD_COMMAND,RAMWR);  // write
-
-            while( i < (width*height)/2 ){
-                lcd_send(LCD_DATA,(color>>4)&0x00FF);
-                lcd_send(LCD_DATA,((color&0x0F)<<4)|(color>>8));
-                lcd_send(LCD_DATA,color&0x0FF);
-                i++;
-
-            }
-            if((width*height) & 1){
-                lcd_send(LCD_DATA,((color>>4)&0x00FF));
-                lcd_send(LCD_DATA,(((color&0x0F)<<4)|0x00));
-            }
-        }
-        else if (driver == PHILLIPS)  // otherwise it's a phillips
-        {
-            i=0;
-            lcd_send(LCD_COMMAND,PASETP); // page start/end ram
-            lcd_send(LCD_DATA,xstart);
-            lcd_send(LCD_DATA,xend);
-            ;
-
-            lcd_send(LCD_COMMAND,CASETP); // column start/end ram
-            lcd_send(LCD_DATA,ystart);
-            lcd_send(LCD_DATA,yend);
-            j++;
-
-
-            lcd_send(LCD_COMMAND,RAMWRP); // write
-
-            while( i < (((width*height)/2)+ (height>width?height:width))  ){
-                lcd_send(LCD_DATA,(color>>4)&0x00FF);
-                lcd_send(LCD_DATA,((color&0x0F)<<4)|(color>>8));
-                lcd_send(LCD_DATA,color&0x0FF);
-                i++;
-
-            }
-            if((width*height) & 1){
-                lcd_send(LCD_DATA,((color>>4)&0x00FF));
-                lcd_send(LCD_DATA,(((color&0x0F)<<4)|0x00));
-            }
-        }
-    }
-
-
-    else
-    {
-        // best way to draw an unfilled rectangle is to draw four lines
-        lcd_setLine(x0, y0, x1, y0, color);
-        lcd_setLine(x0, y1, x1, y1, color);
-        lcd_setLine(x0, y0, x0, y1, color);
-        lcd_setLine(x1, y0, x1, y1, color);
-    }
-
 }

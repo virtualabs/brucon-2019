@@ -200,14 +200,16 @@ void lcd_clearB12(int color);
 void lcd_contrast(char setting);
 void lcd_setChar(char c, int x, int y, int fColor, int bColor, char uselastfill);
 void lcd_setStr(char *pString, int x, int y, int fColor, int bColor, char uselastfill, char newline);
-void lcd_setLine(int x0, int y0, int x1, int y1, int color);
 void lcd_setRect(int x0, int y0, int x1, int y1, unsigned char fill, int color);
 void go_framep(uint16_t *p);
 void fillframe12B(uint16_t color_12b);
 void send_frame(uint16_t *framebuffer);
-void load_bitmap(uint16_t *bitmap);
+void lcd_load_bitmap(uint16_t *bitmap);
 int lcd_commit(void);
-void bitblt(int x, int y, int width, int height, uint16_t *region);
+void lcd_bitblt(int x, int y, int width, int height, uint16_t *region);
+void lcd_region_fill(int x, int y, int width, int height, uint16_t color);
+void lcd_line(int x0, int y0, int x1, int y1, int color);
+void lcd_pixel(int color, unsigned char x, unsigned char y);
 
 
 extern volatile char preventbacklighttimeoutTask ;
