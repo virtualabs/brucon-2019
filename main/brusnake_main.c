@@ -104,9 +104,6 @@ void change_direction(p_gamestate state, t_direction dir)
 
   /* Keep going in this direction. */
   state->direction = dir;
-
-  /* Mark the direction change in the map. */
-  state->map[state->head_x][state->head_y] = dir;
 }
 
 int render_game(p_gamestate state)
@@ -114,10 +111,25 @@ int render_game(p_gamestate state)
   int prev_tail_x;
   int prev_tail_y;
 
+  /* Shall we update the screen ? (the lower the speed, the quicker we refresh it) */
   if ((++state->steps)<state->speed)
     return;
   else
     state->steps=0;
+
+  /* We do not allow these moves: */
+  if (((state->direction == UP) && (state->map[state->head_x][state->head_y] == DOWN)) ||
+      ((state->direction == DOWN) && (state->map[state->head_x][state->head_y] == UP)) ||
+      ((state->direction == RIGHT) && (state->map[state->head_x][state->head_y] == LEFT)) ||
+      ((state->direction == LEFT) && (state->map[state->head_x][state->head_y] == RIGHT))
+    )
+    /* Keep current direction. */
+    state->direction = state->map[state->head_x][state->head_y];
+
+  /* Note: Other direction changes are allowed. */
+
+  /* Mark the direction change in the map. */
+  state->map[state->head_x][state->head_y] = state->direction;
 
   /* Move the snake's head according to map. */
   switch(state->map[state->head_x][state->head_y])
@@ -217,6 +229,7 @@ int render_game(p_gamestate state)
             state->tail_x=0;
           break;
       }
+
       /* Remove tail block. */
       state->map[prev_tail_x][prev_tail_y] = NONE;
     }
